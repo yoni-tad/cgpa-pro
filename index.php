@@ -39,19 +39,44 @@ if ($text == 'Calculate 🚀') {
 $sql_check = mysqli_query($con, "SELECT * FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'writing' ORDER BY `id` DESC LIMIT 1");
 $check = mysqli_fetch_assoc($sql_check);
 if ($check['status'] == 'writing') {
-    if ($text != 'Calculate 🚀') {
-        $course_update = mysqli_query($con, "UPDATE `courses` SET `course_name` = '$text', `status` = 'pending' WHERE `telegram_id` = '$chat_id' AND `status` = 'writing' ORDER BY `id` DESC LIMIT 1");
-        if ($course_update) {
-            credit_hour();
+    if ($text != 'Skip') {
+        if ($text != 'Calculate 🚀') {
+            if ($text != '/start') {
+                if ($text != '/history') {
+                    if ($text != '/cgpa') {
+                        $course_update = mysqli_query($con, "UPDATE `courses` SET `course_name` = '$text', `status` = 'pending' WHERE `telegram_id` = '$chat_id' AND `status` = 'writing' ORDER BY `id` DESC LIMIT 1");
+                        if ($course_update) {
+                            credit_hour();
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-
+// Skip btn
 if ($text == 'Skip') {
     $course_update = mysqli_query($con, "UPDATE `courses` SET `course_name` = 'No course name', `status` = 'pending' WHERE `telegram_id` = '$chat_id' AND `status` = 'writing' ORDER BY `id` DESC LIMIT 1");
     if ($course_update) {
         credit_hour();
+    }
+}
+
+// cancel btn
+if ($text == 'Cancel') {
+    $del_course = mysqli_query($con, "DELETE FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` != 'Done'");
+    if ($del_course) {
+        bot('sendMessage', [
+            'chat_id' => $chat_id,
+            'text' => "✅ Data removed successfully",
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => 'Calculate 🚀']]
+                ],
+                'resize_keyboard' => true
+            ]),
+        ]);
     }
 }
 
@@ -71,35 +96,48 @@ if (strpos($data, 'grade_') !== false) {
 
     switch ($grade) {
         case 'a-plus':
+            $grade_point = 4;
+            $grade_sign = 'A+';
+            break;
         case 'a':
             $grade_point = 4;
+            $grade_sign = 'A';
             break;
         case 'a-minus':
             $grade_point = 3.75;
+            $grade_sign = 'A-';
             break;
         case 'b-plus':
             $grade_point = 3.5;
+            $grade_sign = 'B+';
             break;
         case 'b':
             $grade_point = 3;
+            $grade_sign = 'B';
             break;
         case 'b-minus':
             $grade_point = 2.75;
+            $grade_sign = 'B-';
             break;
         case 'c-plus':
             $grade_point = 2.5;
+            $grade_sign = 'C+';
             break;
         case 'c':
             $grade_point = 2;
+            $grade_sign = 'C';
             break;
         case 'c-minus':
             $grade_point = 1.75;
+            $grade_sign = 'C-';
             break;
         case 'd':
             $grade_point = 1;
+            $grade_sign = 'D';
             break;
         case 'f':
             $grade_point = 0;
+            $grade_sign = 'F';
             break;
 
         default:
@@ -107,12 +145,21 @@ if (strpos($data, 'grade_') !== false) {
             break;
     }
 
-    $course_update = mysqli_query($con, "UPDATE `courses` SET `grade` = '$grade', `grade_point` = '$grade_point' WHERE `telegram_id` = '$chat_id2' AND `status` = 'pending' ORDER BY `id` DESC LIMIT 1");
+    $course_update = mysqli_query($con, "UPDATE `courses` SET `grade` = '$grade_sign', `grade_point` = '$grade_point', `status` = 'Ready' WHERE `telegram_id` = '$chat_id2' AND `status` = 'pending' ORDER BY `id` DESC LIMIT 1");
     if ($course_update) {
+        $Courses_get = mysqli_query($con, "SELECT * FROM `courses` WHERE `telegram_id` = '$chat_id2' AND `status` = 'Ready'");
+        $message = "✅ Your course grade submitted \n";
+        $num = 0;
+        while ($row = mysqli_fetch_assoc($Courses_get)) {
+            $num++;
+            $course_name = $row['course_name'];
+            $grade = $row['grade'];
+            $message .= "\n$num. $course_name ($grade)";
+        }
         bot('editMessageText', [
             'chat_id' => $chat_id2,
             'message_id' => $mid,
-            'text' => "✅ Your course grade submitted",
+            'text' => $message,
             'reply_markup' => $grade_btn,
         ]);
         bot('sendMessage', [
@@ -149,14 +196,15 @@ if ($text == 'Add more') {
 
 // Finished course adding
 if ($text == 'Done') {
-    $courses_check = mysqli_query($con, "SELECT * FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'Pending'");
+    $courses_check = mysqli_query($con, "SELECT * FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'Ready'");
     if (mysqli_num_rows($courses_check) > 0) {
-        $courses = mysqli_query($con, "SELECT COUNT(*) AS total_courses, SUM(`credit_hours`) AS total_credit_hours, SUM(`grade_point`) AS total_grade_points  FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'Pending'");
+        $courses = mysqli_query($con, "SELECT  COUNT(*) AS total_courses, SUM(`credit_hours`) AS total_credit_hours, SUM(`credit_hours` * `grade_point`) AS total_grade_points  FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'Ready'");
         $row = mysqli_fetch_assoc($courses);
         $total_courses = $row['total_courses'];
         $total_credit_hours = $row['total_credit_hours'];
         $total_grade_points = $row['total_grade_points'];
         $gpa = $total_grade_points / $total_credit_hours;
+        $gpa = number_format($gpa, 2);
 
         $cgpa_rec = mysqli_query($con, "INSERT INTO `cgpa_records` (`telegram_id`, `total_credit_hours`, `total_grade_points`, `gpa`) VALUE ('$chat_id', '$total_credit_hours', '$total_grade_points', '$gpa')");
         if ($cgpa_rec) {
@@ -164,7 +212,7 @@ if ($text == 'Done') {
             if ($course_update) {
                 bot('sendMessage', [
                     'chat_id' => $chat_id,
-                    'text' => "🎓 **GPA Calculation Result** 🎓 \n\n📖 Total Courses: $total_courses \n🎯 Total Credit Hours: $total_credit_hours \n📈 Total Grade Points: $total_grade_points \n\n🔥 **GPA: $gpa** \n\n🔄 Keep up the hard work! Stay focused and aim higher! 🚀",
+                    'text' => "🎓 **GPA Calculation Result** 🎓 \n\n📖 Total Courses: $total_courses \n🎯 Total Credit Hours: $total_credit_hours \n📈 Total Grade Points: $total_grade_points \n\n🔥 **GPA: $gpa** \n\n🔄 Keep up the hard work! Stay focused and aim higher! 🚀 \n\n💡 Want to check your overall CGPA? Click 👉 /cgpa",
                     'parse_mode' => 'Markdown',
                     'reply_markup' => json_encode([
                         'keyboard' => [
@@ -178,7 +226,7 @@ if ($text == 'Done') {
     } else {
         bot('sendMessage', [
             'chat_id' => $chat_id,
-            'text' => "😐 No course found!",
+            'text' => "❌ No course found!",
             'reply_markup' => json_encode([
                 'keyboard' => [
                     [['text' => 'Calculate 🚀']]
@@ -189,6 +237,103 @@ if ($text == 'Done') {
     }
 }
 
+// CGPA
+
+if ($text == '/cgpa') {
+    $cgpa_records = mysqli_query($con, "SELECT * FROM `cgpa_records` WHERE `telegram_id` = '$chat_id'");
+    if (mysqli_num_rows($cgpa_records) > 0) {
+        $message = "📜 *Your GPA History:*\n\n";
+        $total_credit_hours = 0;
+        $total_grade_points = 0;
+
+        while ($row = mysqli_fetch_assoc($cgpa_records)) {
+            $date = date("Y-m-d", strtotime($row['created_at']));
+            $gpa = number_format($row['gpa'], 2);
+            $message .= "📅 *$date* - 📊 *GPA:* `$gpa`\n";
+
+            $total_credit_hours += (int) $row['total_credit_hours'];
+            $total_grade_points += (float) $row['total_grade_points'];
+        }
+
+        $cgpa = ($total_credit_hours > 0) ? ($total_grade_points / $total_credit_hours) : 0;
+        $cgpa = number_format($cgpa, 2);
+
+        $message .= "\n🔥 *Final CGPA:* `$cgpa`";
+
+        bot('sendMessage', [
+            'chat_id' => $chat_id,
+            'text' => $message,
+            'parse_mode' => 'Markdown',
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => 'Calculate 🚀']]
+                ],
+                'resize_keyboard' => true
+            ]),
+        ]);
+    } else {
+        bot('sendMessage', [
+            'chat_id' => $chat_id,
+            'text' => "❌ No data found! \n\nClick `Calculate 🚀` to add CGPA",
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => 'Calculate 🚀']]
+                ],
+                'resize_keyboard' => true
+            ]),
+        ]);
+    }
+}
+
+// History
+if ($text == '/history') {
+    $cgpa_records = mysqli_query($con, "SELECT * FROM `cgpa_records` WHERE `telegram_id` = '$chat_id' LIMIT 10");
+    if (mysqli_num_rows($cgpa_records) > 0) {
+
+        while ($row = mysqli_fetch_assoc($cgpa_records)) {
+            $id = $row['id'];
+            $date = date("Y-m-d", strtotime($row['created_at']));
+            $gpa = number_format($row['gpa'], 2);
+            $message = "📅 *$date* - 📊 *GPA:* `$gpa`\n";
+
+            bot('sendMessage', [
+                'chat_id' => $chat_id,
+                'text' => $message,
+                'parse_mode' => 'Markdown',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [['text' => '🗑 Delete', 'callback_data' => 'delete_' . $id]]
+                    ],
+                ]),
+            ]);
+        }
+    } else {
+        bot('sendMessage', [
+            'chat_id' => $chat_id,
+            'text' => "❌ No data found! \n\nClick `Calculate 🚀` to add CGPA",
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => 'Calculate 🚀']]
+                ],
+                'resize_keyboard' => true
+            ]),
+        ]);
+    }
+}
+
+// Delete CGPA
+if (strpos($data, 'delete_') !== false) {
+    $id = str_replace('delete_', '', $data);
+
+    $del_cgpa = mysqli_query($con, "DELETE FROM `cgpa_records` WHERE `id` = '$id'");
+    if ($del_cgpa) {
+        bot('editMessageText', [
+            'chat_id' => $chat_id2,
+            'message_id' => $mid,
+            'text' => "✅ Data removed successfully",
+        ]);
+    }
+}
 
 
 // ===================== FUNCTIONS =====================
