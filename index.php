@@ -61,7 +61,7 @@ if (strpos($data, 'callback_credit_') !== false) {
 
     $course_update = mysqli_query($con, "UPDATE `courses` SET `credit_hours` = '$credit_hour', `grade_point` = '$grade_point' WHERE `telegram_id` = '$chat_id2' AND `status` = 'pending' ORDER BY `id` DESC LIMIT 1");
     if ($course_update) {
-        credit_hour();
+        grade();
     }
 }
 
@@ -109,6 +109,12 @@ if (strpos($data, 'grade_') !== false) {
 
     $course_update = mysqli_query($con, "UPDATE `courses` SET `grade` = '$grade', `grade_point` = '$grade_point' WHERE `telegram_id` = '$chat_id2' AND `status` = 'pending' ORDER BY `id` DESC LIMIT 1");
     if ($course_update) {
+        bot('editMessageText', [
+            'chat_id' => $chat_id2,
+            'message_id' => $mid,
+            'text' => "✅ Your course grade submitted",
+            'reply_markup' => $grade_btn,
+        ]);
         bot('sendMessage', [
             'chat_id' => $chat_id2,
             'text' => "🤔 Have you done? or add more?",
@@ -116,6 +122,66 @@ if (strpos($data, 'grade_') !== false) {
                 'keyboard' => [
                     [['text' => 'Add more']],
                     [['text' => 'Done']],
+                ],
+                'resize_keyboard' => true
+            ]),
+        ]);
+    }
+}
+
+// Add more courses
+if ($text == 'Add more') {
+    $course_rec = mysqli_query($con, "INSERT INTO `courses`(`telegram_id`, `status`) VALUES ('$chat_id', 'writing')");
+    if ($course_rec) {
+        bot('sendMessage', [
+            'chat_id' => $chat_id,
+            'text' => "📚 Enter the course name (optional) 📝",
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => 'Skip']],
+                    [['text' => 'Done']],
+                ],
+                'resize_keyboard' => true
+            ]),
+        ]);
+    }
+}
+
+// Finished course adding
+if ($text == 'Done') {
+    $courses_check = mysqli_query($con, "SELECT * FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'Pending'");
+    if (mysqli_num_rows($courses_check) > 0) {
+        $courses = mysqli_query($con, "SELECT COUNT(*) AS total_courses, SUM(`credit_hours`) AS total_credit_hours, SUM(`grade_point`) AS total_grade_points  FROM `courses` WHERE `telegram_id` = '$chat_id' AND `status` = 'Pending'");
+        $row = mysqli_fetch_assoc($courses);
+        $total_courses = $row['total_courses'];
+        $total_credit_hours = $row['total_credit_hours'];
+        $total_grade_points = $row['total_grade_points'];
+        $gpa = $total_grade_points / $total_credit_hours;
+
+        $cgpa_rec = mysqli_query($con, "INSERT INTO `cgpa_records` (`telegram_id`, `total_credit_hours`, `total_grade_points`, `gpa`) VALUE ('$chat_id', '$total_credit_hours', '$total_grade_points', '$gpa')");
+        if ($cgpa_rec) {
+            $course_update = mysqli_query($con, "UPDATE `courses` SET `status` = 'Done' WHERE `telegram_id` = '$chat_id'");
+            if ($course_update) {
+                bot('sendMessage', [
+                    'chat_id' => $chat_id,
+                    'text' => "🎓 **GPA Calculation Result** 🎓 \n\n📖 Total Courses: $total_courses \n🎯 Total Credit Hours: $total_credit_hours \n📈 Total Grade Points: $total_grade_points \n\n🔥 **GPA: $gpa** \n\n🔄 Keep up the hard work! Stay focused and aim higher! 🚀",
+                    'parse_mode' => 'Markdown',
+                    'reply_markup' => json_encode([
+                        'keyboard' => [
+                            [['text' => 'Calculate 🚀']]
+                        ],
+                        'resize_keyboard' => true
+                    ]),
+                ]);
+            }
+        }
+    } else {
+        bot('sendMessage', [
+            'chat_id' => $chat_id,
+            'text' => "😐 No course found!",
+            'reply_markup' => json_encode([
+                'keyboard' => [
+                    [['text' => 'Calculate 🚀']]
                 ],
                 'resize_keyboard' => true
             ]),

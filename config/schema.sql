@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS yonitatd_cgpa;
-USE yonitatd_cgpa;
+CREATE DATABASE IF NOT EXISTS cgpa;
+USE cgpa;
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -25,6 +25,5 @@ CREATE TABLE cgpa_records (
     total_credit_hours INT NOT NULL,
     total_grade_points DECIMAL(5,2) NOT NULL,
     gpa DECIMAL(4,2) NOT NULL,
-    cgpa DECIMAL(4,2) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
