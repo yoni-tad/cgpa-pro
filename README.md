@@ -1,13 +1,24 @@
-CGPA Pro 🔥
-Your Smart Grade Calculator Bot on Telegram!
+# 🎓 CGPA Pro 🔥  
+
+**CGPA Pro** is a Telegram bot that helps university students easily calculate their **GPA** and **CGPA**, track academic progress, and stay on top of their grades.  
+
+## 🚀 Features  
+- 📊 **GPA Calculation** – Enter your courses, credit hours, and grades to calculate your GPA.  
+- 🎯 **CGPA Tracking** – Check your overall CGPA anytime with `/cgpa`.  
+- 📜 **History Records** – View past GPA records using `/history`.  
+- 🔢 **Easy to Use** – Just click the **Calculate** button to start.  
+
+## 🌐 Try It Now!  
+👉 **[@cgpa_pro_bot](https://t.me/cgpa_pro_bot)** on Telegram  
+
+## 📌 Commands  
+- `/start` – Get started with the bot.  
+- `/history` – View your GPA records.  
+- `/cgpa` – Check your overall CGPA.  
 
 
-📌 About
-CGPA Pro is a simple and efficient CGPA/GPA calculator bot designed for university students. With just a few inputs, you can calculate your semester GPA and cumulative CGPA directly within Telegram.
-
-✨ Features
-✅ Quick GPA & CGPA Calculation 📊
-✅ Supports Multiple Grading Systems 🎓
-✅ Easy-to-Use Telegram Bot 🤖
-✅ Semester Tracking & History 📅 (Optional: If using a database)
-✅ Lightweight & Fast Processing ⚡
+## 🛠 Installation  
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/yoni-tad/cgpa-pro.git
+   cd cgpa-pro
