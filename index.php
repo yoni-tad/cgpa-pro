@@ -7,7 +7,7 @@ if ($text == '/start') {
     }
     bot('sendMessage', [
         'chat_id' => $chat_id,
-        'text' => "🎓 Welcome to CGPA Pro! 🔥 \nYour smart and easy-to-use GPA & CGPA calculator! 📊 \n\n🚀 What can I do? \n✅ Calculate your GPA & CGPA instantly \n✅ Supports different grading systems \n✅ Track multiple semesters easily \n\n⚡ Start calculating now! Just click Calculate 🚀!",
+        'text' => "🎓 Welcome to CGPA Pro! 🔥 \nYour smart and easy-to-use GPA & CGPA calculator! 📊 \n\n🚀 What can I do? \n✅ Calculate your GPA & CGPA instantly \n✅ Track multiple semesters easily \n\n✅ Commands: \n📜 /history – View your past GPA records \n📊 /cgpa – Check your overall CGPA \n\n⚡ Start calculating now! Just click Calculate 🚀! \n\n🧑‍💻 @yonitad0",
         'reply_markup' => json_encode([
             'keyboard' => [
                 [['text' => 'Calculate 🚀']]
@@ -44,10 +44,12 @@ if ($check['status'] == 'writing') {
             if ($text != '/start') {
                 if ($text != '/history') {
                     if ($text != '/cgpa') {
+                        if ($text != 'Cancel') {
                         $course_update = mysqli_query($con, "UPDATE `courses` SET `course_name` = '$text', `status` = 'pending' WHERE `telegram_id` = '$chat_id' AND `status` = 'writing' ORDER BY `id` DESC LIMIT 1");
                         if ($course_update) {
                             credit_hour();
                         }
+                    }
                     }
                 }
             }
